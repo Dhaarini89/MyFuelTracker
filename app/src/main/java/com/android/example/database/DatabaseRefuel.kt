@@ -12,7 +12,8 @@ data class DatabaseRefuel constructor(
     val Quantity:Float,
     val totalCost:Float,
     val price:Float, val dateOfRefuel :Date,
-    var prev_kms:Int, var prev_quantity :Float
+    var prev_kms:Int, var prev_quantity :Float,
+    var carname:String
     )
 
 

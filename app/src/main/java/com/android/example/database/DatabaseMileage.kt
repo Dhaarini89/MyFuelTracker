@@ -11,5 +11,6 @@ data class DatabaseMileage constructor(
     val refuelId :Int,
     val mileage :Float,
     val kmsdiff :Int,
-    val litres :Float
+    val litres :Float,
+    var carname :String
 )

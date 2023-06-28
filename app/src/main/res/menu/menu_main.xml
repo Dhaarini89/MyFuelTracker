@@ -2,13 +2,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:background="@color/light_gray"
-    android:id="@+id/main_menu"
     tools:context="com.android.example.mymileagetracker.MainActivity">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/action_vehicles"
         android:orderInCategory="100"
-        android:title="@string/action_settings"
+        android:title="@string/action_vehicles"
         app:showAsAction="never" />
+
     <item
         android:id="@+id/action_exit"
         android:orderInCategory="100"

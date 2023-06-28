@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.android.example.database.DatabaseRefuel
 import com.android.example.database.RefuelRecordAdapter
 import com.android.example.generic.formatfloat
+import com.android.example.mymileagetracker.MainActivity.Companion.carname
 import com.android.example.mymileagetracker.databinding.ActivityRefuelBinding
 import com.android.example.mymileagetracker.databinding.ActivityRefuelRecordBinding
 import com.google.android.material.datepicker.CalendarConstraints
@@ -66,12 +67,12 @@ class RefuelRecordActivity : AppCompatActivity()
        fun  loadingRecyclerview()
        {
            GlobalScope.launch(Dispatchers.Main) {
-               refuelsRecord = refuelViewModel.getRefuelRecords()
+               refuelsRecord = refuelViewModel.getRefuelRecords(carname)
                refuelsRecord?.let { it ->
                    Log.d("AvgFuel","Came")
                    Mainbinding.refuelRecordsRecyclerView.adapter = RefuelRecordAdapter(it)
-                   { id ->
-                       onRefuelRecordClicked(id)
+                   { odometerReading ->
+                       onRefuelRecordClicked(odometerReading)
 
                    }
                    enableSwipe()
@@ -100,18 +101,18 @@ class RefuelRecordActivity : AppCompatActivity()
                        // Mainbinding.refuelRecordsRecyclerView.adapter!!.removeItem(position)
                         GlobalScope.launch(Dispatchers.IO) {
                             val deletedstatus =1
-                            refuelViewModel.deleteDbRefuel(deletedModel.id)
-                            refuelViewModel.deleteDbMileage(position, deletedModel.id)
-                            refuelViewModel.recalculateAverageMileagebyPrevRecord(deletedstatus,deletedModel)
+                            refuelViewModel.deleteDbRefuel(deletedModel.id, carname)
+                            refuelViewModel.deleteDbMileage(position, deletedModel, carname)
+                            refuelViewModel.recalculateAverageMileagebyPrevRecord(deletedstatus,deletedModel, carname)
                             Log.d("AvgPositionDelete",position.toString())
                         }
                         GlobalScope.launch(Dispatchers.Main) {
-                            refuelsRecord = refuelViewModel.getRefuelRecords()
+                            refuelsRecord = refuelViewModel.getRefuelRecords(carname)
                             refuelsRecord?.let { it ->
                                 Mainbinding.refuelRecordsRecyclerView.adapter =
                                     RefuelRecordAdapter(it)
-                                    { id ->
-                                        onRefuelRecordClicked(id)
+                                    { odometerReading ->
+                                        onRefuelRecordClicked(odometerReading)
                                     }
 
                             }
@@ -124,19 +125,17 @@ class RefuelRecordActivity : AppCompatActivity()
                             GlobalScope.launch(Dispatchers.IO) {
                                 val deletedstatus =0
                                 Log.d("AvgDeletedStats",deletedstatus.toString())
-                                refuelViewModel.addRefuel(deletedModel)
-                                refuelViewModel.calculateAverageMileagebyPreviousRecord(deletedModel.id)
-                                refuelViewModel.recalculateAverageMileagebyPrevRecord(deletedstatus,deletedModel)
+                                  refuelViewModel.recalculateAverageMileagebyPrevRecord(deletedstatus,deletedModel, carname)
 
                             }
 
                             GlobalScope.launch(Dispatchers.Main) {
-                                refuelsRecord = refuelViewModel.getRefuelRecords()
+                                refuelsRecord = refuelViewModel.getRefuelRecords(carname)
                                 refuelsRecord?.let { it ->
                                     Mainbinding.refuelRecordsRecyclerView.adapter =
                                         RefuelRecordAdapter(it)
-                                        { id ->
-                                            onRefuelRecordClicked(id)
+                                        { odometerReading ->
+                                            onRefuelRecordClicked(odometerReading)
                                         }
 
                                 }
@@ -185,10 +184,10 @@ class RefuelRecordActivity : AppCompatActivity()
         builder.setView(binding.root)
         if (updateFlag == 1) {
             GlobalScope.launch(Dispatchers.IO) {
-                updatedRecord = refuelViewModel.getRefuelRecord(id)
+                updatedRecord = refuelViewModel.getRefuelRecord(id, carname)
             }
             GlobalScope.launch(Dispatchers.Main) {
-                DBid =id
+                DBid =updatedRecord!!.id
                 prev_kms = updatedRecord!!.prev_kms
                 prev_qunatity = updatedRecord!!.prev_quantity
                 binding.addButton.setText("Update")
@@ -319,7 +318,7 @@ class RefuelRecordActivity : AppCompatActivity()
                 prev_kms_db = 0
                 prev_kms_db = withContext(Dispatchers.IO) {
                     Log.d("AvgFuel", "Step 3")
-                    refuelViewModel.getLastRecord().odometerReading
+                    refuelViewModel.getLastRecord(carname).odometerReading
                 }
                 if (binding.etOdometer.text!!.isEmpty() || ((Integer.parseInt(binding.etOdometer.text!!.toString()) <= prev_kms_db!!) && updateFlag == 0)) {
                     flag = 0
@@ -360,10 +359,10 @@ class RefuelRecordActivity : AppCompatActivity()
 
     }
 
-    fun onRefuelRecordClicked(id:Int)
+    fun onRefuelRecordClicked(odometerReading:Int)
     {
         updateFlag=1
-      populaddrefueldialog(id)
+      populaddrefueldialog(odometerReading)
     }
 
     override fun onCreateContextMenu(
@@ -404,10 +403,11 @@ class RefuelRecordActivity : AppCompatActivity()
                     Quantity = formatfloat(binding.etGasL.text.toString()),
                     totalCost = formatfloat(binding.etTotalcost.text.toString()),
                     price = formatfloat(binding.etPriceL.text.toString()),
-                    dateOfRefuel = date, prev_kms = prev_kms!!, prev_quantity = prev_qunatity!!)
+                    dateOfRefuel = date, prev_kms = prev_kms!!, prev_quantity = prev_qunatity!!,
+                    carname= carname)
                 Log.d("UpdateRecord", newRefuel.toString())
-                    refuelViewModel.updateRefuelRecord(databaseRefuel = newRefuel)
-                    refuelViewModel.updateMileage(newRefuel)
+                    refuelViewModel.updateRefuelRecord(databaseRefuel = newRefuel, carname)
+                    refuelViewModel.updateMileage(newRefuel, carname)
                     updateFlag = 0
                 }
             else {
@@ -418,13 +418,12 @@ class RefuelRecordActivity : AppCompatActivity()
                         totalCost = formatfloat(binding.etTotalcost.text.toString()),
                         price = formatfloat(binding.etPriceL.text.toString()),
                         dateOfRefuel = date,
-                        prev_kms = 0, prev_quantity = 0.0f)
-                    Log.d("AvgFuel", "Step 9")
-                    newRefuel.prev_kms = refuelViewModel.getLastRecord().odometerReading
-                    newRefuel.prev_quantity = refuelViewModel.getLastRecord().Quantity
+                        prev_kms = 0, prev_quantity = 0.0f, carname = carname)
+                    newRefuel.prev_kms = refuelViewModel.getLastRecord(carname).odometerReading
+                    newRefuel.prev_quantity = refuelViewModel.getLastRecord(carname).Quantity
                     refuelViewModel.addRefuel(newRefuel)
-                    refuelViewModel.calculateAverageMileagebyPreviousRecord(refuelViewModel.getLastRecord().id)
-                    Log.d("AvgFuel", "Step 11")
+                    refuelViewModel.calculateAverageMileagebyPreviousRecord(refuelViewModel.getLastRecord(carname).odometerReading, carname)
+
                 }
         }
      return 0
@@ -440,6 +439,7 @@ class RefuelRecordActivity : AppCompatActivity()
         return when (item.itemId) {
             R.id.action_add -> {
                 populaddrefueldialog(id=0)
+                loadingRecyclerview()
                 true
             }
             else -> super.onOptionsItemSelected(item)

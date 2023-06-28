@@ -3,21 +3,58 @@ package com.android.example.mymileagetracker
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import com.android.example.database.DatabaseVehicle
+import com.android.example.mymileagetracker.MainActivity.Companion.updateFlag
 import com.android.example.mymileagetracker.databinding.ActivitySettingsBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.lang.Thread.sleep
 
 class SettingsActivity : AppCompatActivity() {
     lateinit var binding :ActivitySettingsBinding
+    private val refuelViewModel : RefuelViewModel by viewModels()
+    var updateId=0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        if (updateFlag ==1)
+        {
+            val carName = intent.getStringExtra("carName")
+            lifecycleScope.launch {
+               val values= refuelViewModel.getVehicleByName(carName!!)
+                updateId=values.id
+                Log.d("value",values.toString())
+                binding.etCarname.setText(values.carname)
+                binding.etYear.setText(values.year)
+                binding.etModel.setText(values.model)
+                binding.etMake.setText(values.make)
+                binding.etLicenseplate.setText(values.licenseplate)
+                binding.etTankCapacity.setText(values.capacity)
+                binding.spinner1.setSelection(resources.getStringArray(R.array.Distance_Unit)
+                    .indexOf(values.distanceUnit))
+                binding.spinner2.setSelection(resources.getStringArray(R.array.Fuel_Unit)
+                    .indexOf(values.fuelUnit))
+                binding.spinner3.setSelection(resources.getStringArray(R.array.Currency_Unit)
+                    .indexOf(values.currencyUnit))
+                binding.spinnerGastype.setSelection(resources.getStringArray(R.array.Gas_Type)
+                    .indexOf(values.gasType))
+
+            }
+
+        }
         val currencyarray =resources.getStringArray(R.array.Currency_Unit)
         var currencySymbol :Int?=0
         var currencySymbolTxt :String?=null
@@ -116,10 +153,7 @@ class SettingsActivity : AppCompatActivity() {
                         gasType = gasTypearray[2]
                     }
                 }
-                val sharedPref = getSharedPreferences("my_preferences", Context.MODE_PRIVATE)
-                val editor = sharedPref.edit()
-                editor.putString("GasType", gasType!!)
-                editor.apply()
+
             }
             override fun onNothingSelected(parent: AdapterView<*>) {
             // do nothing
@@ -129,25 +163,39 @@ class SettingsActivity : AppCompatActivity() {
     }
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_delete, menu)
+        menuInflater.inflate(R.menu.menu_save, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_save -> {
-                val sharedPref = getSharedPreferences("storesettings_pref", Context.MODE_PRIVATE)
-                val editor = sharedPref.edit()
-                editor.putString("Year", binding.etYear.text.toString())
-                editor.putString("Model",binding.etModel.text.toString())
-                editor.putString("Make", binding.etMake.text.toString())
-                editor.putString("LicensePlate",binding.etLicenseplate.text.toString())
-                editor.putString("DistanceUnit", binding.spinner1.selectedItem.toString())
-                editor.putString("FuelUnit",binding.spinner2.selectedItem.toString())
-                editor.putString("CurrencyUnit", binding.spinner3.selectedItem.toString())
-                editor.putString("GasType",binding.spinnerGastype.selectedItem.toString())
-                editor.putString("TankCapacity",binding.etTankCapacity.text.toString())
-                editor.apply()
+                 var recordvehicle =DatabaseVehicle(
+                  carname =  convertToString(binding.etCarname),
+                  make =  convertToString(binding.etMake),
+                  model =  convertToString(binding.etModel),
+                  year =  convertToString(binding.etYear),
+                   licenseplate = convertToString(binding.etLicenseplate),
+                   distanceUnit = binding.spinner1.selectedItem.toString(),
+                   fuelUnit = binding.spinner2.selectedItem.toString(),
+                   currencyUnit = binding.spinner3.selectedItem.toString(),
+                   gasType =binding.spinnerGastype.selectedItem.toString(),
+                   capacity = convertToString(binding.etTankCapacity))
+
+                GlobalScope.launch(Dispatchers.Main) {
+                    Log.d("VehRecord","yes")
+                    if (updateFlag == 0) {
+                        Log.d("VehInsert","yes")
+                        refuelViewModel.insertVehicles(recordvehicle)
+                    }
+                    else
+                    {
+                        Log.d("Vehupdate","yes")
+                        recordvehicle.id=updateId
+                        refuelViewModel.updateDatabasevehicle(recordvehicle)
+                        updateFlag =0
+                    }
+                }
                 Toast.makeText(applicationContext,"Your details are saved successfully",Toast.LENGTH_LONG).show()
                 sleep(200)
                 finish()
@@ -159,22 +207,18 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        val sharedPref = getSharedPreferences("storesettings_pref", Context.MODE_PRIVATE)
-       if (sharedPref!=null) {
-           binding.etYear.setText(sharedPref.getString("Year", ""))
-           binding.etModel.setText(sharedPref.getString("Model", ""))
-           binding.etMake.setText(sharedPref.getString("Make", ""))
-           binding.etLicenseplate.setText(sharedPref.getString("LicensePlate", ""))
-           binding.etTankCapacity.setText(sharedPref.getString("TankCapacity",""))
-           binding.spinner1.setSelection(resources.getStringArray(R.array.Distance_Unit)
-               .indexOf(sharedPref.getString("DistanceUnit", "")))
-           binding.spinner2.setSelection(resources.getStringArray(R.array.Fuel_Unit)
-               .indexOf(sharedPref.getString("FuelUnit", "")))
-           binding.spinner3.setSelection(resources.getStringArray(R.array.Currency_Unit)
-               .indexOf(sharedPref.getString("CurrencyUnit", "")))
-           binding.spinnerGastype.setSelection(resources.getStringArray(R.array.Gas_Type)
-               .indexOf(sharedPref.getString("GasType", "")))
-       }
+
     }
 
+    fun convertToString(textView:TextView):String
+    {
+        val textValue = textView.text.toString()
+        return textValue.takeIf { it.isNotEmpty() } ?: " "
+    }
+
+    override fun onBackPressed() {
+        onBackPressedDispatcher.onBackPressed()
+        updateFlag=0
+
+    }
 }

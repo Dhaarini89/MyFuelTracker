@@ -17,6 +17,75 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             >
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <androidx.cardview.widget.CardView
+
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:layout_marginLeft="15dp"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginRight="15dp"
+                    app:cardBackgroundColor="#FF424242"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp">
+                    <RelativeLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentTop="true"
+                        android:layout_alignParentEnd="true"
+                        android:layout_margin="16dp">
+                        <RelativeLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content">
+
+                            <ImageView
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:id="@+id/outline_circle"
+                                android:layout_alignParentStart="true"
+                                android:src="@drawable/circle" />
+
+                            <ImageView
+                                android:id="@+id/text_view"
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:layout_alignParentStart="true"
+                                android:layout_centerInParent="true"
+                                android:layout_marginBottom="5dp"
+                                android:gravity="center"
+                                android:src="@drawable/car" />
+
+
+                            <Spinner
+                               android:id="@+id/Head_Spinner"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_centerVertical="true"
+                                android:layout_marginLeft="10dp"
+                                android:visibility="invisible"
+                                android:entries="@array/Currency_Unit"
+                                android:layout_toEndOf="@id/outline_circle"
+                                android:textSize="15sp" />
+                            <TextView
+                                android:id="@+id/Head_Textview"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_centerVertical="true"
+                                android:layout_marginLeft="10dp"
+                                android:visibility="visible"
+                                android:layout_toEndOf="@id/outline_circle"
+                                android:text="Add a new Vehicle"
+                                android:textSize="15sp" />
+
+                        </RelativeLayout>
+
+                    </RelativeLayout>
+                </androidx.cardview.widget.CardView>
+            </RelativeLayout>
 
             <RelativeLayout
                 android:layout_width="match_parent"

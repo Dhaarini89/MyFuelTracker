@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.room.PrimaryKey
 import com.android.example.database.DatabaseMileage
 import com.android.example.database.DatabaseRefuel
+import com.android.example.database.DatabaseVehicle
 import com.android.example.database.RefuelRepository
 import com.android.example.database.refuelDao
 import kotlinx.coroutines.flow.Flow
@@ -23,132 +24,162 @@ class RefuelViewModel : ViewModel(){
     {
         refuelRepository.addRefuel(refuel)
     }
-    suspend fun getTotalRefuelRecords() : Int
+    suspend fun getTotalRefuelRecords(carname: String) : Int
     {
-        return refuelRepository.getTotalRefuelRecords()
+        return refuelRepository.getTotalRefuelRecords(carname)
     }
-    suspend fun getLastRecord() : DatabaseRefuel
+
+    suspend fun insertVehicles(databaseVehicle: DatabaseVehicle)
     {
-        if (refuelRepository.getTotalRefuelRecords() >= 1) {
-            return refuelRepository.getLastRecord()
+        return refuelRepository.addVehicle(databaseVehicle)
+    }
+    suspend fun getVehiclesList():List<DatabaseVehicle>
+    {
+        return refuelRepository.getVehicles()
+    }
+    suspend fun getVehiclesListName():MutableList<String>
+    {
+        return refuelRepository.getVehiclesName()
+    }
+    suspend fun updateDatabasevehicle(databaseVehicle: DatabaseVehicle)
+    {
+        refuelRepository.updateDatabasevehicle(databaseVehicle)
+    }
+    suspend fun deletebyvehiclename(carname: String)
+    {
+        refuelRepository.deletebyvehiclename(carname)
+    }
+
+    suspend fun getVehicleByName(carname :String):DatabaseVehicle
+    {
+        return refuelRepository.getVehiclebyName(carname)
+    }
+    suspend fun getLastRecord(carname: String) : DatabaseRefuel
+    {
+        if (refuelRepository.getTotalRefuelRecords(carname) >= 1) {
+            return refuelRepository.getLastRecord(carname)
         }
         else
         {
-            var databaseRefuel =DatabaseRefuel(0,0,"",0.0f,0.0f,0.0f,Calendar.getInstance().time,0,0.0f)
+            var databaseRefuel =DatabaseRefuel(0,0,"",0.0f,0.0f,0.0f,Calendar.getInstance().time,0,0.0f,carname)
             return databaseRefuel
         }
 
     }
-    suspend fun getPrevKms() : Int
+    suspend fun getPrevKms(carname: String) : Int
     {
-        if (refuelRepository.getTotalRefuelRecords() >= 1) {
-            return refuelRepository.getPrevKms()
+        if (refuelRepository.getTotalRefuelRecords(carname) >= 1) {
+            return refuelRepository.getPrevKms(carname)
         }
         else
             return 0
     }
-    suspend fun getPrevQuantity() : Float
+    suspend fun getPrevQuantity(carname: String) : Float
     {
-        if (refuelRepository.getTotalRefuelRecords() >= 1) {
-            return refuelRepository.getPrevQuantity()        }
+        if (refuelRepository.getTotalRefuelRecords(carname) >= 1) {
+            return refuelRepository.getPrevQuantity(carname)        }
         else
             return 0.0f
 
     }
-    suspend fun deleteDbRefuel(id:Int)
+    suspend fun deleteDbRefuel(id:Int,carname: String)
     {
-        return refuelRepository.deletebyId(id)
+        return refuelRepository.deletebyId(id,carname)
     }
 
-    suspend fun deleteDbMileage(position :Int,refuelId:Int)
+    suspend fun deleteDbMileage(position :Int,refuel:DatabaseRefuel,carname: String)
     {
-        var i_refuelId =refuelId
-        if (position == 0 && refuelRepository.getTotalMileageRecords() >= 1)
+        var i_refuelId =refuel.id
+        if (position == 0 )
         {
-            i_refuelId =refuelId+1
+            val record =refuelRepository.getRefuelRecordbyPrevKms(refuel.odometerReading,carname)
+            if (record !=null) {
+                i_refuelId = record.id
+            }
+            Log.d("record",i_refuelId.toString())
         }
-        return refuelRepository.deletebyRefuelId(i_refuelId)
+        return refuelRepository.deletebyRefuelId(i_refuelId,carname)
     }
 
-    suspend fun recalculateAverageMileagebyPrevRecord(deletedstatus:Int,deletedModel : DatabaseRefuel)
+    suspend fun recalculateAverageMileagebyPrevRecord(deletedstatus:Int,deletedModel : DatabaseRefuel,carname: String)
     {   var updateId =0
         var litres =0.0f
         var kmsdiff =0
         Log.d("AvgDeletedStatsView",deletedstatus.toString())
         if (deletedstatus ==1) {
-            val Record = refuelRepository.getRefuelRecord(deletedModel.id + 1)
+            val Record = refuelRepository.getRefuelRecordbyPrevKms(deletedModel.odometerReading,carname)
             if (Record != null) {
                 Record.prev_kms = deletedModel.prev_kms
                 Record.prev_quantity = deletedModel.prev_quantity
                 refuelRepository.updateRefuelRecord(Record)
                 updateId = Record.id
                 litres =Record.prev_quantity
-                 kmsdiff = Record.odometerReading - Record.prev_kms
-
-
+                kmsdiff = Record.odometerReading - Record.prev_kms
             }
         }
         else if (deletedstatus == 0)
         {
             Log.d("AvgDeletedStatsViewinside",deletedstatus.toString())
-            val undorecord = refuelRepository.getRefuelRecord(deletedModel.id + 1)
+            val undorecord = refuelRepository.getRefuelRecordbyPrevKms(deletedModel.prev_kms,carname)
+            Log.d("Deltedmodel",undorecord.id.toString())
             undorecord.prev_kms=deletedModel.odometerReading
             undorecord.prev_quantity=deletedModel.Quantity
             refuelRepository.updateRefuelRecord(undorecord)
             updateId=undorecord.id
             litres = undorecord.prev_quantity
             kmsdiff = undorecord.odometerReading - undorecord.prev_kms
+            addRefuel(deletedModel)
+            calculateAverageMileagebyPreviousRecord(deletedModel.odometerReading, carname)
+
 
         }
 
         var mileage: Float = 0.0f
-        mileage = kmsdiff / litres
-        refuelRepository.updateMileage(updateId, mileage, litres, kmsdiff)
+         mileage = kmsdiff / litres
+         refuelRepository.updateMileage(updateId, mileage, litres, kmsdiff,carname)
 
     }
-    suspend fun calculateAverageMileagebyPreviousRecord(id:Int)
+    suspend fun calculateAverageMileagebyPreviousRecord(odometerReading: Int,carname: String)
     {
-        val totalrefuelrecords = refuelRepository.getTotalRefuelRecords()
+        val totalrefuelrecords = refuelRepository.getTotalRefuelRecords(carname)
         var mileage :Float=0.0f
         if (totalrefuelrecords > 1) {
-            val refuelRecord =refuelRepository.getRefuelRecord(id)
+            val refuelRecord =refuelRepository.getRefuelRecord(odometerReading,carname)
             val samplekmsdiff = refuelRecord.odometerReading-refuelRecord.prev_kms
             val samplequantity = refuelRecord.prev_quantity
              mileage = samplekmsdiff / samplequantity
-             val insertMileage = DatabaseMileage(refuelId =refuelRecord.id ,mileage = mileage, kmsdiff = samplekmsdiff, litres = samplequantity)
+             val insertMileage = DatabaseMileage(carname = carname, refuelId =refuelRecord.id ,mileage = mileage, kmsdiff = samplekmsdiff, litres = samplequantity)
              refuelRepository.insertMileage(insertMileage)
         }
-
     }
-    suspend fun getPrevMileage() :Float
+    suspend fun getPrevMileage(carname: String) :Float
     {
-        val totalrefuelrecords = refuelRepository.getTotalRefuelRecords()
+        val totalrefuelrecords = refuelRepository.getTotalRefuelRecords(carname)
         if (totalrefuelrecords > 1) {
-            return refuelRepository.getPrevMileage()
+            return refuelRepository.getPrevMileage(carname)
         }
         else
         {
             return 0.0f
         }
     }
-    suspend fun calculateAverageMileage( ) : String
+    suspend fun calculateAverageMileage( carname: String) : String
     {
         Log.d("fueltotalcall","functioncalled")
-        val totalmileagerecords = refuelRepository.getTotalMileageRecords()
+        val totalmileagerecords = refuelRepository.getTotalMileageRecords(carname)
         var avg_mileage :Float=0.0f
         val df = DecimalFormat("#.##")
         Log.d("fueltotalrecords",totalmileagerecords.toString())
         df.roundingMode = RoundingMode.CEILING
         if (totalmileagerecords > 1) {
-            val totalLitresmileage =refuelRepository.getTotalLitresMileages()
-            val totalKmsmileage =refuelRepository.getTotalKmsMileages()
-            // val totalmileages = refuelRepository.getTotalMileages()
+            val totalLitresmileage =refuelRepository.getTotalLitresMileages(carname)
+            val totalKmsmileage =refuelRepository.getTotalKmsMileages(carname)
             avg_mileage = totalKmsmileage / totalLitresmileage
 
         }
         else if (totalmileagerecords == 1)
         {
-            avg_mileage = refuelRepository.getPrevMileage()
+            avg_mileage = refuelRepository.getPrevMileage(carname)
         }
         else
         {
@@ -158,7 +189,7 @@ class RefuelViewModel : ViewModel(){
         return stravg_mileage
     }
 
-    suspend fun updateMileage(databaseRefuel: DatabaseRefuel)
+    suspend fun updateMileage(databaseRefuel: DatabaseRefuel,carname: String)
     {
         if (databaseRefuel.prev_kms != 0) {
             //Update mileage for current refuelId due to odometer update
@@ -169,36 +200,36 @@ class RefuelViewModel : ViewModel(){
             refuelRepository.updateMileage(databaseRefuel.id,
                 currmileage,
                 currecquantity,
-                currreckmsdiff)
+                currreckmsdiff, carname)
         }
             // Update the next record too for new prev_kms new prev_quantity
-            val recordtobeupdatednext =refuelRepository.getRefuelRecord(databaseRefuel.id + 1)
+            val recordtobeupdatednext =refuelRepository.getRefuelRecordbyPrevKms(databaseRefuel.odometerReading,carname)
             if (recordtobeupdatednext !=null) {
                 val samplekmsdiff =
                     recordtobeupdatednext.odometerReading - recordtobeupdatednext.prev_kms
                 val samplequantity = recordtobeupdatednext.prev_quantity
                 val mileage = samplekmsdiff / samplequantity
-                refuelRepository.updateMileage(databaseRefuel.id + 1,
+                refuelRepository.updateMileage(recordtobeupdatednext.id,
                     mileage,
                     samplequantity,
-                    samplekmsdiff)
+                    samplekmsdiff,carname)
             }
 
     }
-    suspend fun updateRefuelRecord(databaseRefuel: DatabaseRefuel)
+    suspend fun updateRefuelRecord(databaseRefuel: DatabaseRefuel,carname: String)
     {
         refuelRepository.updateRefuelRecord(databaseRefuel)
-        refuelRepository.updatePrevValues(databaseRefuel.id + 1, databaseRefuel.odometerReading, databaseRefuel.Quantity)
+        refuelRepository.updatePrevValues(databaseRefuel.id + 1, databaseRefuel.odometerReading, databaseRefuel.Quantity,carname)
 
     }
-    suspend fun getRefuelRecord(id:Int) :DatabaseRefuel
+    suspend fun getRefuelRecord(odometerReading: Int,carname: String) :DatabaseRefuel
     {
-        return refuelRepository.getRefuelRecord(id)
+        return refuelRepository.getRefuelRecord(odometerReading,carname)
     }
 
 
-    suspend fun getRefuelRecords() :List<DatabaseRefuel>
+    suspend fun getRefuelRecords(carname: String) :List<DatabaseRefuel>
     {
-        return refuelRepository.getRefuelRecords()
+        return refuelRepository.getRefuelRecords(carname)
     }
 }

@@ -21,99 +21,142 @@ class RefuelRepository private constructor(context: Context){
         "databasemileage"
     ).build()
 
-    suspend fun getRefuelRecord(id:Int) : DatabaseRefuel
+    private val vehicleDatabase : VehicleDatabase = Room.databaseBuilder(
+        context.applicationContext,
+        VehicleDatabase::class.java,
+        "databasevehicle"
+    ).build()
+
+    suspend fun getRefuelRecord(odometerReading:Int,carname: String) : DatabaseRefuel
     {
-        return refuelDatabase.refuelDao.getRefuelRecord(id)
+        return refuelDatabase.refuelDao.getRefuelRecord(odometerReading, carname )
     }
-     suspend fun getRefuelRecords() : List<DatabaseRefuel>
+    suspend fun getRefuelRecordbyPrevKms(prev_kms: Int,carname: String) : DatabaseRefuel
     {
-        return refuelDatabase.refuelDao.getRefuelRecords()
+        return refuelDatabase.refuelDao.getRefuelRecordbyPrevKms(prev_kms, carname )
+    }
+     suspend fun getRefuelRecords(carname: String) : List<DatabaseRefuel>
+    {
+        return refuelDatabase.refuelDao.getRefuelRecords(carname)
     }
      suspend fun addRefuel(databaseRefuel: DatabaseRefuel)
     {
          refuelDatabase.refuelDao.insertRefuel(databaseRefuel)
     }
 
-    suspend fun deletebyId(id:Int)
+    suspend fun addVehicle(databaseVehicle: DatabaseVehicle)
     {
-        refuelDatabase.refuelDao.deleteDbRefuelById(id)
+        vehicleDatabase.vehicleDao.insertVehicle(databaseVehicle)
     }
 
-    suspend fun deletebyRefuelId(refuelId :Int)
+    suspend fun getVehicles() :List<DatabaseVehicle>
     {
-        mileageDatabase.mileageDao.deleteById(refuelId)
+        return vehicleDatabase.vehicleDao.getVehicleList()
+    }
+
+
+    suspend fun getVehiclesName() :MutableList<String>
+    {
+        return vehicleDatabase.vehicleDao.getVehicleListName()
+    }
+    suspend fun getVehiclebyName(carname :String) :DatabaseVehicle
+    {
+        return vehicleDatabase.vehicleDao.getVehicleByname(carname)
+    }
+
+    suspend fun deletebyvehiclename(carname: String)
+    {
+        vehicleDatabase.vehicleDao.deletebyvehiclename(carname)
+        refuelDatabase.refuelDao.deleterefuelsvehiclename(carname)
+        mileageDatabase.mileageDao.deletemileagesvehiclename(carname)
+    }
+
+    suspend fun updateDatabasevehicle(databaseVehicle: DatabaseVehicle)
+    {
+        vehicleDatabase.vehicleDao.updateDatabasevehicle(databaseVehicle)
+    }
+
+    suspend fun deletebyId(id:Int,carname: String)
+    {
+        refuelDatabase.refuelDao.deleteDbRefuelById(id,carname)
+    }
+
+    suspend fun deletebyRefuelId(refuelId :Int,carname: String)
+    {
+        mileageDatabase.mileageDao.deleteById(refuelId,carname)
     }
     suspend fun updateRefuelRecord(databaseRefuel: DatabaseRefuel)
     {
         refuelDatabase.refuelDao.updateRefuelRecord(databaseRefuel)
     }
 
-    suspend fun updatePrevValues(id:Int,prev_kms:Int,preV_quantity:Float)
+    suspend fun updatePrevValues(id:Int,prev_kms:Int,preV_quantity:Float,carname: String)
     {
-        refuelDatabase.refuelDao.updatePrevValues(id,prev_kms,preV_quantity)
+        refuelDatabase.refuelDao.updatePrevValues(id,prev_kms,preV_quantity,carname)
     }
 
-    suspend fun getId():Int
+    suspend fun getId(carname: String):Int
     {
-        return refuelDatabase.refuelDao.getId()
+        return refuelDatabase.refuelDao.getId(carname)
     }
 
-    suspend fun updateMileage(refuelId :Int,mileage:Float,litres:Float,kmsdiff:Int)
+    suspend fun updateMileage(refuelId :Int,mileage:Float,litres:Float,kmsdiff:Int,carname: String)
     {
-        mileageDatabase.mileageDao.updateMileage(refuelId,mileage,litres,kmsdiff)
+        mileageDatabase.mileageDao.updateMileage(refuelId,mileage,litres,kmsdiff,carname)
     }
 
-    suspend fun getTotalRefuelRecords() :Int
+    suspend fun getTotalRefuelRecords(carname: String) :Int
     {
-        val value= refuelDatabase.refuelDao.getTotalRefuelRecords()
+        val value= refuelDatabase.refuelDao.getTotalRefuelRecords(carname)
         Log.d("I came here",value.toString())
         return value
 
     }
-    suspend fun getPrevKms() :Int
+    suspend fun getPrevKms(carname: String) :Int
     {
-        return refuelDatabase.refuelDao.getPrevKms()
+        return refuelDatabase.refuelDao.getPrevKms(carname)
     }
 
-    suspend fun getTotalMileageRecords() : Int
+    suspend fun getTotalMileageRecords(carname: String) : Int
     {
-        return mileageDatabase.mileageDao.getTotalMileageRecords()
+        return mileageDatabase.mileageDao.getTotalMileageRecords(carname)
     }
-    suspend fun getPrevQuantity() :Float
+    suspend fun getPrevQuantity(carname: String) :Float
     {
-        return refuelDatabase.refuelDao.getPrevQuantity()
-    }
-
-    suspend fun getLastRecord() :DatabaseRefuel
-    {
-        return refuelDatabase.refuelDao.getLastRecord()
+        return refuelDatabase.refuelDao.getPrevQuantity(carname)
     }
 
-    suspend fun getPrevMileage() :Float
+    suspend fun getLastRecord(carname: String) :DatabaseRefuel
     {
-        return mileageDatabase.mileageDao.getPrevMileage()
+        return refuelDatabase.refuelDao.getLastRecord(carname)
     }
 
-    suspend fun getPrevKmsvalue() :Int
+    suspend fun getPrevQuantityvalue(carname: String) :Float
     {
-        return refuelDatabase.refuelDao.getPrevKmsvalue()
+        return refuelDatabase.refuelDao.getPrevQuantityvalue(carname)
     }
 
-    suspend fun getTotalMileages() :Float
+    suspend fun getPrevMileage(carname: String) :Float
     {
-        return mileageDatabase.mileageDao.getTotalMileages()
+        return mileageDatabase.mileageDao.getPrevMileage(carname)
     }
-    suspend fun getTotalKmsMileages() :Int
+
+    suspend fun getPrevKmsvalue(carname: String) :Int
     {
-        return mileageDatabase.mileageDao.getTotalKmsMileages()
+        return refuelDatabase.refuelDao.getPrevKmsvalue(carname)
     }
-    suspend fun getTotalLitresMileages() :Float
+
+    suspend fun getTotalMileages(carname: String) :Float
     {
-        return mileageDatabase.mileageDao.getTotalLitresMileages()
+        return mileageDatabase.mileageDao.getTotalMileages(carname)
     }
-    suspend fun getPrevQuantityvalue() :Float
+    suspend fun getTotalKmsMileages(carname: String) :Int
     {
-        return refuelDatabase.refuelDao.getPrevQuantityvalue()
+        return mileageDatabase.mileageDao.getTotalKmsMileages(carname)
+    }
+    suspend fun getTotalLitresMileages(carname: String) :Float
+    {
+        return mileageDatabase.mileageDao.getTotalLitresMileages(carname)
     }
 
     suspend fun insertMileage(mileage: DatabaseMileage)
